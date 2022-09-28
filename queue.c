@@ -183,20 +183,12 @@ element_t *l_mid_last(element_t *h)
 /* Insert the head of t to tail of q without malloc and free
  * Return next of t
  */
-element_t *q_insert_ele_tail(queue_t *q, element_t *t)
+element_t * q_insert_ele_tail(queue_t *q, element_t *t)
 {
     element_t *ret = t->next;
-    t->next = NULL;
-
-    if (q->size == 0) {
-        q->head = t;
-        q->tail = t;
-    } else {
-        q->tail->next = t;
-        q->tail = t;
-    }
-
-    ++q->size;
+    q_insert_tail(q, t->value);
+    free(t->value);
+    free(t);
     return ret;
 }
 
@@ -213,13 +205,8 @@ void merge(queue_t *dst, element_t *a, element_t *b)
         }
     }
 
-    while (a) {
-        a = q_insert_ele_tail(dst, a);
-    }
-
-    while (b) {
-        b = q_insert_ele_tail(dst, b);
-    }
+    dst->tail->next = a ? a : b;
+    dst->tail = dst->tail->next;
 }
 
 /*
