@@ -1,9 +1,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include "queue.h"
 
+size_t lg(int x)
+{
+    size_t cnt = -1;
+
+    while (x) {
+        ++cnt;
+        x >>= 1;
+    }
+
+    return cnt;
+}
 /*
  * Create empty queue.
  * Return NULL if could not allocate space.
@@ -131,10 +143,7 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
  */
 size_t q_size(queue_t *q)
 {
-    if (!q)
-        return 0;
-
-    return q->size;
+    return q ? q->size : 0;
 }
 
 /*
@@ -186,9 +195,17 @@ element_t *l_mid_last(element_t *h)
 element_t * q_insert_ele_tail(queue_t *q, element_t *t)
 {
     element_t *ret = t->next;
-    q_insert_tail(q, t->value);
-    free(t->value);
-    free(t);
+    t->next = NULL;
+
+    if (!q->size) {
+        q->head = t;
+        q->tail = t;
+    } else {
+        q->tail->next = t;
+        q->tail = t;
+    }
+
+    ++q->size;
     return ret;
 }
 
@@ -197,6 +214,8 @@ element_t * q_insert_ele_tail(queue_t *q, element_t *t)
  */
 void merge(queue_t *dst, element_t *a, element_t *b)
 {
+    memset(dst, 0, sizeof(queue_t));
+
     while (a && b) {
         if (strcmp(a->value, b->value) <= 0) {
             a = q_insert_ele_tail(dst, a);
@@ -209,26 +228,10 @@ void merge(queue_t *dst, element_t *a, element_t *b)
     dst->tail = dst->tail->next;
 }
 
-/*
- * The function's sorting algorithm should be merge sort.
- */
-void merge_sort(element_t **head)
+bool can_merge(queue_t *stack, size_t stack_size)
 {
-    if (!(*head) || !(*head)->next)
-        return;
-
-    element_t *hh = *head;
-    element_t *half = l_mid_last(hh);
-    element_t *temp = half;
-    half = half->next;
-    temp->next = NULL;
-    merge_sort(&hh);
-    merge_sort(&half);
-    queue_t newq = {0};
-    merge(&newq, hh, half);
-    *head = newq.head;
+    return stack_size >= 2 && stack[stack_size - 2].size < 2 * stack[stack_size - 1].size;
 }
-
 /*
  * Sort elements of queue in ascending order
  * No effect if q is NULL or empty. In addition, if q has only one
@@ -236,14 +239,43 @@ void merge_sort(element_t **head)
  */
 void q_sort(queue_t *q)
 {
-    if (!q || !q->head)
+    if (!q || q->size <= 1)
         return;
 
-    merge_sort(&q->head);
-    element_t *walk = q->head;
+    //initialize stack
+    queue_t *stack = malloc((lg(q->size) + 1) * sizeof(sizeof(queue_t)));
+    size_t stack_size = 0;
+    element_t *head = q->head, *temp;
 
-    while (walk->next)
-        walk = walk->next;
+    while (head) {
+        //extract one element
+        temp = head;
+        head = head->next;
+        temp->next = NULL;
 
-    q->tail = walk;
+        //input one element
+        stack[stack_size].head = temp;
+        stack[stack_size].tail = temp;
+        stack[stack_size].size = 1;
+        ++stack_size;
+
+        //merge until can't merge anymore
+        while (can_merge(stack, stack_size)) {
+            int sz = stack[stack_size - 2].size + stack[stack_size - 1].size;
+            merge(stack + stack_size - 2, stack[stack_size - 2].head, stack[stack_size - 1].head);
+            --stack_size;
+            stack[stack_size - 1].size = sz;
+        }
+    }
+
+    //merge until remained one element
+    while (stack_size >= 2) {
+        int sz = stack[stack_size - 2].size + stack[stack_size - 1].size;
+        merge(stack + stack_size - 2, stack[stack_size - 2].head, stack[stack_size - 1].head);
+        --stack_size;
+        stack[stack_size - 1].size = sz;
+    }
+
+    memcpy(q, stack, sizeof(queue_t));
+    free(stack);
 }
