@@ -40,5 +40,8 @@ clean:
 	rm -rf *.dSYM
 	(cd traces; rm -f *~)
 
+astyle:
+	
+
 -include $(deps)
 

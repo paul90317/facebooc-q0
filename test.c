@@ -12,9 +12,9 @@ static bool validate(queue_t *q)
         if (strcmp(e->value, e->next->value) > 0)
             return false;
     }
-    
+
     q_reverse(q);
-    
+
     for (element_t *e = q->head; e->next; e = e->next) {
         if (strcmp(e->value, e->next->value) < 0)
             return false;
@@ -34,6 +34,7 @@ static void q_show(queue_t *q)
 int main(void)
 {
     FILE *fp = fopen("cities.txt", "r");
+
     if (!fp) {
         perror("failed to open cities.txt");
         exit(EXIT_FAILURE);
@@ -41,14 +42,16 @@ int main(void)
 
     queue_t *q = q_new();
     char buf[256];
+
     while (fgets(buf, 256, fp))
         q_insert_head(q, buf);
+
     fclose(fp);
 
     q_sort(q);
     assert(validate(q));
-    
-    q_free(q);
 
+    q_free(q);
+    puts("Finish!");
     return 0;
 }

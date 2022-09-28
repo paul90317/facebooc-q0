@@ -10,23 +10,25 @@
  */
 queue_t *q_new()
 {
-    queue_t* ret=malloc(sizeof(queue_t));
-    ret->head=NULL;
-    ret->tail=NULL;
-    ret->size=0;
+    queue_t *ret = malloc(sizeof(queue_t));
+    ret->head = NULL;
+    ret->tail = NULL;
+    ret->size = 0;
     return ret;
 }
 
 /* Free all storage used by queue */
 void q_free(queue_t *q)
 {
-    element_t* now=q->head,*next;
-    while(now){
-        next=now->next;
+    element_t *now = q->head, *next;
+
+    while (now) {
+        next = now->next;
         free(now->value);
         free(now);
-        now=next;
+        now = next;
     }
+
     free(q);
 }
 
@@ -37,17 +39,27 @@ void q_free(queue_t *q)
  * Argument s points to the string to be stored.
  * The function must explicitly allocate space and copy the string into it.
  */
-
 bool q_insert_head(queue_t *q, char *s)
 {
-    if(!q)
+    if (!q)
         return false;
-    element_t* t=malloc(sizeof(element_t));
-    t->next=q->head;
-    t->value=strdup(s);
-    if(!q->head)
-        q->tail=t;
-    q->head=t;
+
+    element_t *t = malloc(sizeof(element_t));
+
+    if (!t)
+        return false;
+
+    t->value = strdup(s);
+
+    if (!t->value)
+        return false;
+
+    t->next = q->head;
+
+    if (!q->head)
+        q->tail = t;
+
+    q->head = t;
     ++q->size;
     return true;
 }
@@ -61,18 +73,29 @@ bool q_insert_head(queue_t *q, char *s)
  */
 bool q_insert_tail(queue_t *q, char *s)
 {
-    if(!q)
+    if (!q)
         return false;
-    element_t* t=malloc(sizeof(element_t));
-    t->value=strdup(s);
-    t->next=NULL;
-    if(q->tail){
-        q->tail->next=t;
-        q->tail=t;
-    }else{
-        q->tail=t;
-        q->head=t;
+
+    element_t *t = malloc(sizeof(element_t));
+
+    if (!t)
+        return false;
+
+    t->value = strdup(s);
+
+    if (!t->value)
+        return false;
+
+    t->next = NULL;
+
+    if (q->tail) {
+        q->tail->next = t;
+        q->tail = t;
+    } else {
+        q->tail = t;
+        q->head = t;
     }
+
     ++q->size;
     return true;
 }
@@ -87,13 +110,16 @@ bool q_insert_tail(queue_t *q, char *s)
  */
 bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 {
-    if(!q||!q->head)
+    if (!q || !q->head)
         return false;
-    element_t* t=q->head;
-    if(sp)
-        strncpy(sp,t->value,bufsize-1);
+
+    element_t *t = q->head;
+
+    if (sp)
+        strncpy(sp, t->value, bufsize - 1);
+
     free(t->value);
-    q->head=t->next;
+    q->head = t->next;
     free(t);
     --q->size;
     return true;
@@ -105,8 +131,9 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
  */
 size_t q_size(queue_t *q)
 {
-    if(!q)
+    if (!q)
         return 0;
+
     return q->size;
 }
 
@@ -119,38 +146,80 @@ size_t q_size(queue_t *q)
  */
 void q_reverse(queue_t *q)
 {
-    element_t* stk=NULL,*next,*head=q->head;
-    q->tail=head;
-    while(head){
-        next=head->next;
-        head->next=stk;
-        stk=head;
-        head=next;
+    element_t *stk = NULL, *next, *head = q->head;
+    q->tail = head;
+
+    while (head) {
+        next = head->next;
+        head->next = stk;
+        stk = head;
+        head = next;
     }
-    q->head=stk;
+
+    q->head = stk;
 }
 
 //by paul90317
-element_t *l_mid_last(element_t*h){
-    if(!h || !h->next)
+/* Return last element of mid element of h
+ * Return NULL if t only have 1 or 0 element.
+ */
+element_t *l_mid_last(element_t *h)
+{
+    if (!h || !h->next)
         return NULL;
-    element_t* t=h;
-    h=h->next->next;
-    while(h&&h->next){
-        t=t->next;
-        h=h->next->next;
+
+    element_t *t = h;
+    h = h->next->next;
+
+    while (h && h->next) {
+        t = t->next;
+        h = h->next->next;
     }
+
     return t;
 }
 
 //by paul90317
-element_t *l_tail(element_t*h){
-    if(!h)
-        return NULL;
-    while(h->next){
-        h=h->next;
+/* Insert the head of t to tail of q without malloc and free
+ * Return next of t
+ */
+element_t *q_insert_ele_tail(queue_t *q, element_t *t)
+{
+    element_t *ret = t->next;
+    t->next = NULL;
+
+    if (q->size == 0) {
+        q->head = t;
+        q->tail = t;
+    } else {
+        q->tail->next = t;
+        q->tail = t;
     }
-    return h;
+
+    ++q->size;
+    return ret;
+}
+
+//by paul90317
+/* Merge two sorted list a, b to dst
+ */
+void merge(queue_t *dst, element_t *a, element_t *b)
+{
+    while (a && b) {
+        if (strcmp(a->value, b->value) <= 0) {
+            a = q_insert_ele_tail(dst, a);
+        } else {
+            b = q_insert_ele_tail(dst, b);
+        }
+    }
+
+    while (a) {
+        a = q_insert_ele_tail(dst, a);
+    }
+
+    while (b) {
+        b = q_insert_ele_tail(dst, b);
+    }
 }
 
 /*
@@ -160,44 +229,17 @@ void merge_sort(element_t **head)
 {
     if (!(*head) || !(*head)->next)
         return;
-    element_t* hh=*head;
-    element_t* half=l_mid_last(hh);
-    element_t* temp=half;
-    half=half->next;
-    temp->next=NULL;
+
+    element_t *hh = *head;
+    element_t *half = l_mid_last(hh);
+    element_t *temp = half;
+    half = half->next;
+    temp->next = NULL;
     merge_sort(&hh);
     merge_sort(&half);
-    queue_t newq={0};
-    while(hh&&half){
-        if(strcmp(hh->value,half->value)<=0){
-            q_insert_tail(&newq,hh->value);
-            temp=hh;
-            hh=hh->next;
-            free(temp->value);
-            free(temp);
-        }else{
-            q_insert_tail(&newq,half->value);
-            temp=half;
-            half=half->next;
-            free(temp->value);
-            free(temp);
-        }
-    }
-    while(hh){
-        q_insert_tail(&newq,hh->value);
-        temp=hh;
-        hh=hh->next;
-        free(temp->value);
-        free(temp);
-    }
-    while(half){
-        q_insert_tail(&newq,half->value);
-        temp=half;
-        half=half->next;
-        free(temp->value);
-        free(temp);
-    }
-    *head=newq.head;
+    queue_t newq = {0};
+    merge(&newq, hh, half);
+    *head = newq.head;
 }
 
 /*
@@ -212,6 +254,7 @@ void q_sort(queue_t *q)
 
     merge_sort(&q->head);
     element_t *walk = q->head;
+
     while (walk->next)
         walk = walk->next;
 
