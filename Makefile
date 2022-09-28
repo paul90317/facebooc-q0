@@ -38,6 +38,7 @@ valgrind: valgrind_existence
 clean:
 	rm -f $(OBJS) $(deps) *~ test /tmp/test.*
 	rm -rf *.dSYM
+	rm -rf cachegrind.out.*
 	(cd traces; rm -f *~)
 
 astyle:
