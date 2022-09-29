@@ -224,29 +224,58 @@ void merge(queue_t *dst, element_t *a, element_t *b)
         }
     }
 
-    dst->tail->next = a ? a : b;
-    dst->tail = dst->tail->next;
+    while (a) {
+        a = q_insert_ele_tail(dst, a);
+    }
+
+    while (b) {
+        b = q_insert_ele_tail(dst, b);
+    }
 }
 
-bool can_merge(queue_t *stack, size_t stack_size)
+element_t *better_merge(element_t *a, element_t *b)
 {
-    return stack_size >= 2 && stack[stack_size - 2].size < 2 * stack[stack_size - 1].size;
+    element_t *ret, **next = &ret; //一開始，下一個要修改的是 ret
+
+    while (a && b) {
+        if (strcmp(a->value, b->value) <= 0) {
+            *next = a;
+            a = a->next;
+        } else {
+            *next = b;
+            b = b->next;
+        }
+
+        next = &(*next)->next; //紀錄下一個要修改的位置
+    }
+
+    *next = a ? a : b;//接上剩下的
+    return ret;
 }
-/*
- * Sort elements of queue in ascending order
- * No effect if q is NULL or empty. In addition, if q has only one
- * element, do nothing.
- */
-void q_sort(queue_t *q)
+
+bool can_merge(size_t *sizes, size_t stack_size)
 {
-    if (!q || q->size <= 1)
+    return stack_size >= 2 && sizes[stack_size - 2] == sizes[stack_size - 1];
+}
+
+void merge_sort(element_t **qhead)
+{
+    if (!(*qhead) || !(*qhead)->next)
         return;
 
     //initialize stack
-    queue_t *stack = malloc((lg(q->size) + 1) * sizeof(sizeof(queue_t)));
-    size_t stack_size = 0;
-    element_t *head = q->head, *temp;
+    size_t stack_size = 0, *sizes, qsize = 0;
+    element_t *head = *qhead, *temp = head, **stack;
 
+    while (temp) {
+        ++qsize;
+        temp = temp->next;
+    }
+
+    stack = malloc((lg(qsize) + 1) * sizeof(element_t*));
+    sizes = malloc((lg(qsize) + 1) * sizeof(size_t));
+
+    //input and merge
     while (head) {
         //extract one element
         temp = head;
@@ -254,28 +283,45 @@ void q_sort(queue_t *q)
         temp->next = NULL;
 
         //input one element
-        stack[stack_size].head = temp;
-        stack[stack_size].tail = temp;
-        stack[stack_size].size = 1;
+        stack[stack_size] = temp;
+        sizes[stack_size] = 1;
         ++stack_size;
 
         //merge until can't merge anymore
-        while (can_merge(stack, stack_size)) {
-            int sz = stack[stack_size - 2].size + stack[stack_size - 1].size;
-            merge(stack + stack_size - 2, stack[stack_size - 2].head, stack[stack_size - 1].head);
+        while (can_merge(sizes, stack_size)) {
+            sizes[stack_size - 2] += sizes[stack_size - 1];
+            stack[stack_size - 2] = better_merge(stack[stack_size - 2], stack[stack_size - 1]);
             --stack_size;
-            stack[stack_size - 1].size = sz;
         }
     }
 
     //merge until remained one element
     while (stack_size >= 2) {
-        int sz = stack[stack_size - 2].size + stack[stack_size - 1].size;
-        merge(stack + stack_size - 2, stack[stack_size - 2].head, stack[stack_size - 1].head);
+        sizes[stack_size - 2] += sizes[stack_size - 1];
+        stack[stack_size - 2] = better_merge(stack[stack_size - 2], stack[stack_size - 1]);
         --stack_size;
-        stack[stack_size - 1].size = sz;
     }
 
-    memcpy(q, stack, sizeof(queue_t));
+    *qhead = stack[0];
     free(stack);
+    free(sizes);
+}
+
+/*
+ * Sort elements of queue in ascending order
+ * No effect if q is NULL or empty. In addition, if q has only one
+ * element, do nothing.
+ */
+void q_sort(queue_t *q)
+{
+    if (!q || !q->head)
+        return;
+
+    merge_sort(&q->head);
+    element_t *walk = q->head;
+
+    while (walk->next)
+        walk = walk->next;
+
+    q->tail = walk;
 }
