@@ -253,9 +253,9 @@ element_t *better_merge(element_t *a, element_t *b)
     return ret;
 }
 
-bool can_merge(size_t *sizes, size_t stack_size)
+bool can_merge(list_t *stack, size_t stack_size)
 {
-    return stack_size >= 2 && sizes[stack_size - 2] == sizes[stack_size - 1];
+    return stack_size >= 2 && stack[stack_size - 2].size == stack[stack_size - 1].size;
 }
 
 void merge_sort(element_t **qhead)
@@ -264,16 +264,16 @@ void merge_sort(element_t **qhead)
         return;
 
     //initialize stack
-    size_t stack_size = 0, *sizes, qsize = 0;
-    element_t *head = *qhead, *temp = head, **stack;
+    size_t stack_size = 0, qsize = 0;
+    element_t *head = *qhead, *temp = head;
+    list_t *stack;
 
     while (temp) {
         ++qsize;
         temp = temp->next;
     }
 
-    stack = malloc((lg(qsize) + 1) * sizeof(element_t*));
-    sizes = malloc((lg(qsize) + 1) * sizeof(size_t));
+    stack = malloc((lg(qsize) + 1) * sizeof(list_t));
 
     //input and merge
     while (head) {
@@ -283,28 +283,27 @@ void merge_sort(element_t **qhead)
         temp->next = NULL;
 
         //input one element
-        stack[stack_size] = temp;
-        sizes[stack_size] = 1;
+        stack[stack_size].head = temp;
+        stack[stack_size].size = 1;
         ++stack_size;
 
         //merge until can't merge anymore
-        while (can_merge(sizes, stack_size)) {
-            sizes[stack_size - 2] += sizes[stack_size - 1];
-            stack[stack_size - 2] = better_merge(stack[stack_size - 2], stack[stack_size - 1]);
+        while (can_merge(stack, stack_size)) {
+            stack[stack_size - 2].size += stack[stack_size - 1].size;
+            stack[stack_size - 2].head = better_merge(stack[stack_size - 2].head, stack[stack_size - 1].head);
             --stack_size;
         }
     }
 
     //merge until remained one element
     while (stack_size >= 2) {
-        sizes[stack_size - 2] += sizes[stack_size - 1];
-        stack[stack_size - 2] = better_merge(stack[stack_size - 2], stack[stack_size - 1]);
+        stack[stack_size - 2].size += stack[stack_size - 1].size;
+        stack[stack_size - 2].head = better_merge(stack[stack_size - 2].head, stack[stack_size - 1].head);
         --stack_size;
     }
 
-    *qhead = stack[0];
+    *qhead = stack[0].head;
     free(stack);
-    free(sizes);
 }
 
 /*
