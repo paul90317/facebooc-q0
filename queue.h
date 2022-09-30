@@ -24,9 +24,6 @@ typedef struct element {
 } element_t;
 
 typedef struct list {
-    /* Pointer to array holding string.
-     * This array needs to be explicitly allocated and freed
-     */
     size_t size;
     element_t *head;
 } list_t;
