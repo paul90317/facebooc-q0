@@ -224,14 +224,34 @@ void merge(queue_t *dst, element_t *a, element_t *b)
         }
     }
 
-    dst->tail->next = a ? a : b;
-    dst->tail = dst->tail->next;
+    while (a) {
+        a = q_insert_ele_tail(dst, a);
+    }
+
+    while (b) {
+        b = q_insert_ele_tail(dst, b);
+    }
+}
+//by paul90317
+/* Merge two sorted list a, b to dst
+ */
+void merge_sort(element_t **head)
+{
+    if (!(*head) || !(*head)->next)
+        return;
+
+    element_t* hh = *head;
+    element_t* half = l_mid_last(hh);
+    element_t* temp = half;
+    half = half->next;
+    temp->next = NULL;
+    merge_sort(&hh);
+    merge_sort(&half);
+    queue_t newq = {0};
+    merge(&newq, hh, half);
+    *head = newq.head;
 }
 
-bool can_merge(queue_t *stack, size_t stack_size)
-{
-    return stack_size >= 2 && stack[stack_size - 2].size < 2 * stack[stack_size - 1].size;
-}
 /*
  * Sort elements of queue in ascending order
  * No effect if q is NULL or empty. In addition, if q has only one
@@ -239,43 +259,14 @@ bool can_merge(queue_t *stack, size_t stack_size)
  */
 void q_sort(queue_t *q)
 {
-    if (!q || q->size <= 1)
+    if (!q || !q->head)
         return;
 
-    //initialize stack
-    queue_t *stack = malloc((lg(q->size) + 1) * sizeof(sizeof(queue_t)));
-    size_t stack_size = 0;
-    element_t *head = q->head, *temp;
+    merge_sort(&q->head);
+    element_t *walk = q->head;
 
-    while (head) {
-        //extract one element
-        temp = head;
-        head = head->next;
-        temp->next = NULL;
+    while (walk->next)
+        walk = walk->next;
 
-        //input one element
-        stack[stack_size].head = temp;
-        stack[stack_size].tail = temp;
-        stack[stack_size].size = 1;
-        ++stack_size;
-
-        //merge until can't merge anymore
-        while (can_merge(stack, stack_size)) {
-            int sz = stack[stack_size - 2].size + stack[stack_size - 1].size;
-            merge(stack + stack_size - 2, stack[stack_size - 2].head, stack[stack_size - 1].head);
-            --stack_size;
-            stack[stack_size - 1].size = sz;
-        }
-    }
-
-    //merge until remained one element
-    while (stack_size >= 2) {
-        int sz = stack[stack_size - 2].size + stack[stack_size - 1].size;
-        merge(stack + stack_size - 2, stack[stack_size - 2].head, stack[stack_size - 1].head);
-        --stack_size;
-        stack[stack_size - 1].size = sz;
-    }
-
-    memcpy(q, stack, sizeof(queue_t));
-    free(stack);
+    q->tail = walk;
 }
